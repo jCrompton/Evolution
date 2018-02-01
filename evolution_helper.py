@@ -9,8 +9,12 @@ from keras import backend as K
 from keras.callbacks import TerminateOnNaN, EarlyStopping
 
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
 from sklearn.preprocessing import normalize, scale, minmax_scale
 from bitstring import BitArray
+
+random_seed = 42
+np.random.seed(random_seed)
 
 def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=None,
                             max_num_neurons=None, verbosity=0, epochs=1, *args, **kwargs):
@@ -23,49 +27,36 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
     scalers = kwargs.get('scalers')
     verbosity = kwargs.get('verbosity')
     metric = kwargs.get('metric')
+    k_folds = kwargs.get('k_folds') if kwargs.get('k_folds') else 3
     shape = x_train.shape[1]
     predictors = y_train.shape[1]
     epochs = epochs
 
-    def base_eval_func(sequence, ret=False, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test, verbose=verbosity, metric=metric, epochs=epochs, gene_len=False):
+    def base_eval_func(sequence, ret=False, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test, k_folds=k_folds, verbose=verbosity, metric=metric, epochs=epochs, gene_len=False):
         if gene_len:
             return transcribe_base(sequence, max_num_layers, max_num_neurons, activations=activations, dropouts=dropouts, optimizers=optimizers, scalers=scalers, gene_len=True)
         genome, hidden_architecture, dropout, optimizer, activation, batch_norm, batch_size, scaler = transcribe_base(sequence, max_num_layers, max_num_neurons, activations=activations, dropouts=dropouts, optimizers=optimizers, scalers=scalers)
-        advanced_activation = True if type(activation) != str else False
         metric = metric if metric else mean_squared_error
-        model = Sequential()
-        model.add(Dropout(dropout, input_shape=(shape,)))
-        for layer_params in hidden_architecture:
-            layer_size = layer_params[0]
+        kfold = KFold(n_splits=k_folds, shuffle=True, random_state=random_seed)
+        scores = []
+        X = np.concatenate((x_train,x_test))
+        Y = np.concatenate((y_train, y_test))
+        
+        for train, test in kfold.split(X, Y):
+            if scaler:
+                x_train = scaler(x_train)
+                x_test = scaler(x_test)
+            model = simple_nn(x_train.shape[1], y_train.shape[1], hidden_architecture, dropout, optimizer, activation, batch_norm, batch_size, scaler)
+            model.fit(x_train, y_train, epochs=epochs, verbose=verbose, callbacks=[TerminateOnNaN()])
+            if ret:
+                return model
+            pred = model.predict(x_test)
+
             try:
-                hidden_dropout = layer_params[1]
-            except IndexError:
-                hidden_dropout = dropout
-            if advanced_activation:
-                model.add(Dense(layer_size))
-                model.add(activation)
-            else:
-                model.add(Dense(layer_size, activation=activation))
-            if batch_norm:
-                model.add(BatchNormalization())
-            model.add(Dropout(hidden_dropout))
-        model.add(Dense(predictors))
-        model.compile(loss='mean_squared_error', optimizer=optimizer, metrics=metrics)
-
-        if scaler:
-            x_train = scaler(x_train)
-            x_test = scaler(x_test)
-
-        model.fit(x_train, y_train, epochs=epochs, verbose=verbose, callbacks=[TerminateOnNaN()])
-        if ret:
-            return model
-        pred = model.predict(x_test)
-
-        try:
-            score = metric(y_test, pred)
-        except ValueError:
-            score = 999999999
-        return score,
+                scores.append(metric(y_test, pred))
+            except ValueError:
+                scores.append(999999999)
+        return np.mean(scores),
     return base_eval_func
 
 def transcribe_base(sequence, max_num_layers, max_num_neurons, min_batch=16, max_batch=128, activations=None, dropouts=None, optimizers=None, scalers=None, gene_len=False, *args, **kwargs):
@@ -110,3 +101,25 @@ def transcribe_base(sequence, max_num_layers, max_num_neurons, min_batch=16, max
 
 def transcribe(sequence, end, start=0):
     return BitArray(sequence[start:end]).uint
+
+def simple_nn(shape, predictors, hidden_architecture, dropout, optimizer, activation, batch_norm, batch_size, scaler):
+    advanced_activation = True if type(activation) != str else False
+    model = Sequential()
+    model.add(Dropout(dropout, input_shape=(shape,)))
+    for layer_params in hidden_architecture:
+        layer_size = layer_params[0]
+        try:
+            hidden_dropout = layer_params[1]
+        except IndexError:
+            hidden_dropout = dropout
+        if advanced_activation:
+            model.add(Dense(layer_size))
+            model.add(activation)
+        else:
+            model.add(Dense(layer_size, activation=activation))
+        if batch_norm:
+            model.add(BatchNormalization())
+        model.add(Dropout(hidden_dropout))
+    model.add(Dense(predictors))
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
+    return model
