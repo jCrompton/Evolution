@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, PReLU
+from keras.layers import Dense, Dropout, BatchNormalization, LeakyReLU, PReLU, LSTM, Bidirectional, Convolution1D, Flatten, GlobalMaxPool1D, MaxPooling1D
 from keras import backend as K
 from keras.callbacks import TerminateOnNaN, EarlyStopping
 
@@ -41,7 +41,7 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
         scores = []
         X = np.concatenate((x_train,x_test))
         Y = np.concatenate((y_train, y_test))
-        
+
         for train, test in kfold.split(X, Y):
             if scaler:
                 x_train = scaler(x_train)
@@ -122,4 +122,50 @@ def simple_nn(shape, predictors, hidden_architecture, dropout, optimizer, activa
         model.add(Dropout(hidden_dropout))
     model.add(Dense(predictors))
     model.compile(loss='mean_squared_error', optimizer=optimizer)
+    return model
+
+def convolutional(maxlen=80, convolutional_structure=None, neural_network_structure=None, max_features=50000, conv_to_dnn_dropout=None, convolutional_activation='relu', neural_activation='relu', embedding_dims=120, max_pooling=False, pool_size=2):
+    # Set hyperparameters if given else use defaults
+    convolutional_structure = convolutional_structure if convolutional_structure else [(64,3), (32, 3), (16,3)]
+    neural_network_structure = neural_network_structure if neural_network_structure else [(180,0.2), (90, 0.2)]
+
+    # Create model with hyperparameters
+    model = Sequential()
+    model.add(Embedding(max_features, embedding_dims, input_length=maxlen))
+    for filters, kernel_size in convolutional_structure:
+        model.add(Convolution1D(filters, kernel_size, activation=convolutional_activation))
+        if max_pooling:
+            model.add(MaxPooling1D(pool_size=pool_size))
+    model.add(Flatten())
+    if conv_to_dnn_dropout:
+        model.add(Dropout(conv_to_dnn_dropout))
+    for neurons, nn_drop in neural_network_structure:
+        model.add(Dense(neurons, activation=neural_activation))
+        model.add(Dropout(nn_drop))
+    model.add(Dense(6, activation='sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    return model
+
+def simple_recurrent(maxlen=80, neural_struc=None, max_features=50000, embedding_dims=150, dropout=None, neural_activation='relu'):
+    # Set hyperparameters if given else use defaults
+    units = neural_struc[0][0]/2 if neural_struc else 25
+    neural_struct = neural_struc if neural_struc else [[50, 0.1]]
+
+    # Create model with hyperparameters
+    model = Sequential()
+    model.add(Embedding(max_features, embedding_dims, input_length=maxlen))
+    model.add(Bidirectional(LSTM(units, return_sequences=True)))
+    model.add(GlobalMaxPool1D())
+    if dropout:
+        model.add(Dropout(dropout))
+    for layer in neural_struct:
+        try:
+            num_neurons, layer_dropout = layer
+        except ValueError:
+            num_neurons = layer[0]
+            layer_dropout = dropout
+        model.add(Dense(num_neurons, activation=neural_activation))
+        model.add(Dropout(layer_dropout))
+    model.add(Dense(6, activation='sigmoid'))
+    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
