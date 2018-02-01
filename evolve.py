@@ -22,6 +22,21 @@ def get_data(data_path):
     y_test = pd.read_csv('{}/x_train.csv'.format(data_path)).values
     return x_train, y_train, x_test, y_test
 
+def fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, frozen_models_path):
+    text = raw_input('Do you want to save best so far? (y/n)')
+    if 'y' in text:
+        print('Scoring best so far...')
+        best_individuals = tools.selBest(population, k=k_to_save)
+        best_evolutionary_score = eval_func(best_individuals[0])
+        print('Best score {} in {} minutes{}\n'.format(best_evolutionary_score, end_time, '!' if best_evolutionary_score < 1.0 else '...'))
+        print('Now saving top {} models to {}...'.format(k_to_save, frozen_models_path))
+        for dna, name in zip(best_individuals, [names.get_full_name() for _ in range(k_to_save)]):
+            model = eval_func(dna, ret=True, epochs=build_epochs)
+            save_model(model, frozen_models_path, name)
+    elif 'n' in text:
+        print('Bye')
+    else:
+        fail_safe(start_time, tools, population, k_to_save, eval_func, frozen_models_path)
 
 def save_model(model, path, model_name):
     model_path = '{}/{}'.format(path, model_name)
@@ -113,14 +128,18 @@ if __name__ == '__main__':
 
     population = toolbox.population(n=pop_size)
 
-    algorithms.eaSimple(population, toolbox,cxpb=gene_crsv, mutpb=gene_mut,
-    ngen=generations, verbose=False if verbosity < 1 else True)
+    try:
+        algorithms.eaSimple(population, toolbox,cxpb=gene_crsv, mutpb=gene_mut,
+        ngen=generations, verbose=False if verbosity < 1 else True)
 
-    end_time = round((time.time() - start_time)/60.0, 3)
-    best_individuals = tools.selBest(population, k=k_to_save)
-    best_evolutionary_score = eval_func(best_individuals[0])
-    print('Evolution complete, best score {} in {} minutes{}\n'.format(best_evolutionary_score, end_time, '!' if best_evolutionary_score < 1.0 else '...'))
-    print('Now saving top {} models to {}...'.format(k_to_save, frozen_models_path))
-    for dna, name in zip(best_individuals, [names.get_full_name() for _ in range(k_to_save)]):
-        model = eval_func(dna, ret=True, epochs=build_epochs)
-        save_model(model, frozen_models_path, name)
+        end_time = round((time.time() - start_time)/60.0, 3)
+        best_individuals = tools.selBest(population, k=k_to_save)
+        best_evolutionary_score = eval_func(best_individuals[0])
+        print('Evolution complete, best score {} in {} minutes{}\n'.format(best_evolutionary_score, end_time, '!' if best_evolutionary_score < 1.0 else '...'))
+        print('Now saving top {} models to {}...'.format(k_to_save, frozen_models_path))
+        for dna, name in zip(best_individuals, [names.get_full_name() for _ in range(k_to_save)]):
+            model = eval_func(dna, ret=True, epochs=build_epochs)
+            save_model(model, frozen_models_path, name)
+    except KeyboardInterrupt:
+        end_time = round((time.time() - start_time)/60.0, 3)
+        fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, frozen_models_path)
