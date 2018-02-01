@@ -23,7 +23,7 @@ def get_data(data_path):
     return x_train, y_train, x_test, y_test
 
 def fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, frozen_models_path):
-    text = raw_input('Do you want to save best so far? (y/n)')
+    text = raw_input('\n Do you want to save best so far? (y/n)\n')
     if 'y' in text:
         print('Scoring best so far...')
         best_individuals = tools.selBest(population, k=k_to_save)
@@ -34,9 +34,9 @@ def fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, fro
             model = eval_func(dna, ret=True, epochs=build_epochs)
             save_model(model, frozen_models_path, name)
     elif 'n' in text:
-        print('Bye')
+        print('\nBye')
     else:
-        fail_safe(start_time, tools, population, k_to_save, eval_func, frozen_models_path)
+        fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, frozen_models_path)
 
 def save_model(model, path, model_name):
     model_path = '{}/{}'.format(path, model_name)
