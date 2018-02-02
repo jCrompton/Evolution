@@ -30,7 +30,7 @@ def transcribe_base(sequence, max_num_layers, max_num_neurons, min_batch=16, max
                       len_of_activation_gene, len_of_batch_norm_gene,
                       len_of_batch_size, len_of_scalers]
     if gene_len:
-        return sum(genome) + 2
+        return sum(genome)
     assert len(sequence) == sum(genome), "Length of input sequence must match length of desired individual:{}, given length {}.".format(sum(genome), len(sequence))
 
     num_layers = transcribe(sequence, len_of_layer_gene)+1
