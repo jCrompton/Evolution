@@ -39,7 +39,7 @@ def simple_recurrent(predictors, maxlen=80, neural_struc=None, max_features=5000
             model.add(Dense(num_neurons, activation=neural_activation))
         model.add(Dropout(layer_dropout))
     model.add(Dense(predictors, activation='sigmoid'))
-    model.compile(loss='binary_crossentropy', optimizer=optimizer)
+    model.compile(loss='mean_squared_error', optimizer=optimizer)
     return model
 
 def transcribe_base_rnn(sequence, max_num_layers, max_num_neurons, activations=None, optimizers=None, dropouts=None, scalers=None, min_max_features=10000, max_max_features=100000, min_embedding_dims=40, max_embedding_dims=250, min_batch=16, max_batch=128, min_maxlen=40 ,max_maxlen=240, gene_len=False):
