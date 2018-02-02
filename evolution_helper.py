@@ -59,7 +59,7 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
                                          neural_activation=activation,
                                          optimizer=optimizer)
                 model.fit(x_train, y_train, epochs=epochs,
-                          verbose=1, callbacks=[TerminateOnNaN()], batch_size=batch_size)
+                          verbose=verbose, callbacks=[TerminateOnNaN()], batch_size=batch_size)
                 if ret:
                     return model
                 pred = model.predict(x_test)
@@ -96,7 +96,7 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
                                            neural_activation=neural_activation, neural_dropout=neural_dropout,
                                            embedding_dims=embedding_size, max_pooling=max_pool, pool_size=pool_size, optimizer=optimizer)
                 model.fit(x_train, y_train, epochs=epochs,
-                          verbose=1, callbacks=[TerminateOnNaN()], batch_size=batch_size)
+                          verbose=verbose, callbacks=[TerminateOnNaN()], batch_size=batch_size)
                 if ret:
                     return model
                 pred = model.predict(x_test)
