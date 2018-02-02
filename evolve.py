@@ -17,9 +17,9 @@ np.random.seed(42)
 
 def get_data(data_path):
     x_train = pd.read_csv('{}/x_train.csv'.format(data_path)).values
-    y_train = pd.read_csv('{}/x_train.csv'.format(data_path)).values
-    x_test = pd.read_csv('{}/x_train.csv'.format(data_path)).values
-    y_test = pd.read_csv('{}/x_train.csv'.format(data_path)).values
+    y_train = pd.read_csv('{}/y_train.csv'.format(data_path)).values
+    x_test = pd.read_csv('{}/x_test.csv'.format(data_path)).values
+    y_test = pd.read_csv('{}/y_test.csv'.format(data_path)).values
     return x_train, y_train, x_test, y_test
 
 def fail_safe(start_time, end_time, tools, population, k_to_save, eval_func, frozen_models_path):
@@ -62,6 +62,9 @@ def build_parser():
     parser.add_argument('--save_k_best', action='store', default=1)
     parser.add_argument('--build_epochs', action='store', default=10)
     parser.add_argument('--frozen_models_path', action='store', default=None)
+    parser.add_argument('--rnn', action=('store_true'), default=False)
+    parser.add_argument('--cnn', action=('store_true'), default=False)
+
     return parser
 
 def build_base_toolbox(pop_size, eval_func):
@@ -100,7 +103,8 @@ if __name__ == '__main__':
     k_to_save = int(arguments.save_k_best)
     build_epochs = int(arguments.build_epochs)
     frozen_models_path = arguments.frozen_models_path if arguments.frozen_models_path else data_path
-
+    rnn = arguments.rnn
+    cnn = arguments.cnn
     # Check arguments are clean
     assert os.path.exists(data_path), 'Make sure --data_path argument points to an existing directory. Given directory {}.'.format(data_path)
     assert gene_mut <= 1.0, 'Gene mutation cannot be greater than 1...'
@@ -109,7 +113,7 @@ if __name__ == '__main__':
     # Get data
     x_train, y_train, x_test, y_test = get_data(data_path)
     # Build toolbox and model function
-    eval_func = build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=max_layers, max_num_neurons=max_neurons, verbosity=verbosity, epochs=epochs)
+    eval_func = build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=max_layers, max_num_neurons=max_neurons, verbosity=verbosity, epochs=epochs, rnn=rnn, cnn=cnn)
     gene_length = eval_func([1], gene_len=True)
 
     creator.create('FitnessMax', base.Fitness, weights = (-1.0,))
