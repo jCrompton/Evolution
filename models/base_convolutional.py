@@ -91,6 +91,8 @@ def base_convolutional(predictors, maxlen=80, convolutional_structure=None,
                        conv_to_dnn_dropout=None, convolutional_activation='relu',
                        neural_activation='relu', neural_dropout=0.2,
                        embedding_dims=120, max_pooling=False, pool_size=2, optimizer='adam'):
+    conv_advanced_activation = True if type(convolutional_activation) != str else False
+    neural_advanced_activation = True if type(neural_activation) != str else False
     # Set hyperparameters if given else use defaults
     convolutional_structure = convolutional_structure if convolutional_structure else [(64, 3), (32, 3), (16, 3)]
     neural_network_structure = neural_network_structure if neural_network_structure else [(180,neural_dropout), (90, neural_dropout)]
@@ -99,14 +101,22 @@ def base_convolutional(predictors, maxlen=80, convolutional_structure=None,
     model = Sequential()
     model.add(Embedding(max_features, embedding_dims, input_length=maxlen))
     for filters, kernel_size in convolutional_structure:
-        model.add(Convolution1D(filters, kernel_size, activation=convolutional_activation))
+        if conv_advanced_activation:
+            model.add(Convolution1D(filters, kernel_size))
+            model.add(convolutional_activation)
+        else:
+            model.add(Convolution1D(filters, kernel_size, activation=convolutional_activation))
         if max_pooling:
             model.add(MaxPooling1D(pool_size=pool_size))
     model.add(Flatten())
     if conv_to_dnn_dropout:
         model.add(Dropout(conv_to_dnn_dropout))
     for neurons, nn_drop in neural_network_structure:
-        model.add(Dense(neurons, activation=neural_activation))
+        if neural_advanced_activation:
+            model.add(Dense(neurons))
+            model.add(neural_activation)
+        else:
+            model.add(Dense(neurons, activation=neural_activation))
         model.add(Dropout(nn_drop))
     model.add(Dense(predictors, activation='sigmoid'))
     model.compile(loss='mean_squared_error', optimizer=optimizer)
