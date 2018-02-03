@@ -73,7 +73,7 @@ def transcribe_base_rnn(sequence, max_num_layers, max_num_neurons, activations=N
     idx = len_of_layer
     window = int(math.log(max_num_neurons, 2))
     for _ in range(num_layers):
-        num_of_neurons = BitArray(sequence[idx:idx+window]).uint
+        num_of_neurons = BitArray(sequence[idx:idx+window]).uint + 1
         hidden_architecture.append((num_of_neurons, ))
         idx += window
         window -= 1

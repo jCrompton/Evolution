@@ -13,7 +13,7 @@ from bitstring import BitArray
 __all__ = ['transcribe_base_cnn', 'base_convolutional']
 
 
-def transcribe_base_cnn(sequence, max_num_conv_layers=4, max_num_conv_neurons=256, max_kernel_size=6, max_pool_size=4, max_num_neural_layers=4, max_num_neural_neurons=1024, activations=None, optimizers=None, dropouts=None, scalers=None, min_max_features=10000, max_max_features=100000, min_embedding_dims=40, max_embedding_dims=250, min_batch=16, max_batch=128, min_maxlen=40 ,max_maxlen=240, gene_len=False):
+def transcribe_base_cnn(sequence, max_num_conv_layers=4, max_num_conv_neurons=256, max_kernel_size=6, max_pool_size=2, max_num_neural_layers=4, max_num_neural_neurons=1024, activations=None, optimizers=None, dropouts=None, scalers=None, min_max_features=10000, max_max_features=100000, min_embedding_dims=40, max_embedding_dims=250, min_batch=16, max_batch=128, min_maxlen=40 ,max_maxlen=240, gene_len=False):
     activations = activations if activations else ['relu', 'tanh', 'sigmoid',
                                                    'elu', 'linear', LeakyReLU(),
                                                    'selu', 'hard_sigmoid']
@@ -55,7 +55,7 @@ def transcribe_base_cnn(sequence, max_num_conv_layers=4, max_num_conv_neurons=25
     kernel_size = transcribe(sequence, genome, 2) + 1
     pool_size = transcribe(sequence, genome, 3) + 1
     for _ in range(num_conv_layers):
-        num_of_neurons = BitArray(sequence[idx:idx+window]).uint
+        num_of_neurons = BitArray(sequence[idx:idx+window]).uint + 1
         conv_architecture.append((num_of_neurons, kernel_size))
         idx += window
         window -= 1
@@ -67,7 +67,7 @@ def transcribe_base_cnn(sequence, max_num_conv_layers=4, max_num_conv_neurons=25
     window = int(math.log(max_num_neural_neurons, 2))
     neural_dropout = dropouts[transcribe(sequence, genome, 7)]
     for _ in range(num_neural_layers):
-        num_of_neurons = BitArray(sequence[idx:idx+window]).uint
+        num_of_neurons = BitArray(sequence[idx:idx+window]).uint + 1
         neural_architecture.append((num_of_neurons, neural_dropout))
         idx += window
         window -= 1

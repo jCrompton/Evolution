@@ -39,7 +39,7 @@ def transcribe_base(sequence, max_num_layers, max_num_neurons, min_batch=16, max
     idx = len_of_layer_gene
     window = int(math.log(max_num_neurons, 2))
     for _ in range(num_layers):
-        num_of_neurons = BitArray(sequence[idx:idx+window]).uint
+        num_of_neurons = BitArray(sequence[idx:idx+window]).uint + 1
         hidden_architecture.append((num_of_neurons, ))
         idx += window
         window -= 1
