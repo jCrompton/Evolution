@@ -68,6 +68,7 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
                     scores.append(metric(y_test, pred))
                 except ValueError, IndexError:
                     scores.append(999999999)
+            print np.mean(scores)
             return np.mean(scores),
     elif convolutional:
         def eval_func(sequence, ret=False, x_train=x_train, y_train=y_train, x_test=x_test, y_test=y_test, k_folds=k_folds, verbose=verbosity, metric=metric, epochs=epochs, gene_len=False):
@@ -142,5 +143,6 @@ def build_base_nn_eval_func(x_train, y_train, x_test, y_test, max_num_layers=Non
                     scores.append(metric(y_test, pred))
                 except ValueError:
                     scores.append(999999999)
+            print np.mean(scores)
             return np.mean(scores),
     return eval_func
